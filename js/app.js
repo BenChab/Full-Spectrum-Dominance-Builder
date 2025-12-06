@@ -1,159 +1,249 @@
-// app.js - vanilla JS
+// app.js - vanilla JS (version corrigée)
 
+// Factions list
 const FACTIONS = [
-    { key: "the_tech", name: "The Tech", logo: "assets/the_tech/logo.png" },
-    { key: "the_enlisted", name: "The Enlisted", logo: "assets/the_enlisted/logo.png" },
-    { key: "the_union", name: "The Union", logo: "assets/the_union/logo.png" },
-    { key: "the_conglomerate", name: "The Conglomerate", logo: "assets/the_conglomerate/logo.png" },
-    { key: "the_reclaimed", name: "The Reclaimed", logo: "assets/the_reclaimed/logo.png" },
-    { key: "the_corsairs", name: "The Corsairs", logo: "assets/the_corsairs/logo.png" }
+  { key: "the_tech", name: "The Tech", logo: "assets/the_tech/logo.png" },
+  { key: "the_enlisted", name: "The Enlisted", logo: "assets/the_enlisted/logo.png" },
+  { key: "the_union", name: "The Union", logo: "assets/the_union/logo.png" },
+  { key: "the_conglomerate", name: "The Conglomerate", logo: "assets/the_conglomerate/logo.png" },
+  { key: "the_reclaimed", name: "The Reclaimed", logo: "assets/the_reclaimed/logo.png" },
+  { key: "the_corsairs", name: "The Corsairs", logo: "assets/the_corsairs/logo.png" }
 ];
 
 // State
 let currentFaction = null;
-let unitsData = []; // Loaded JSON for the chosen faction
-let selectedUnits = []; // Units added to the list
+let unitsData = [];
+let selectedUnits = [];
 let pointLimit = 60;
 
-// DOM refs
-const factionGrid = document.getElementById("factionGrid");
-const factionSelectSection = document.getElementById("faction-select");
-const unitBuilderSection = document.getElementById("unit-builder");
-const selectedFactionName = document.getElementById("selectedFactionName");
-const pointLimitEl = document.getElementById("pointLimit");
-const limitPointsEl = document.getElementById("limitPoints");
-const usedPointsEl = document.getElementById("usedPoints");
-const openAddUnitBtn = document.getElementById("openAddUnit");
-const unitsModal = document.getElementById("unitsModal");
-const closeUnitsModal = document.getElementById("closeUnitsModal");
-const availableUnitsEl = document.getElementById("availableUnits");
-const unitListEl = document.getElementById("unitList");
-const backBtn = document.getElementById("backBtn");
+// DOM refs (will be assigned after DOM is ready)
+let factionGrid, factionSelectSection, unitBuilderSection, selectedFactionName;
+let pointLimitEl, limitPointsEl, usedPointsEl, openAddUnitBtn;
+let unitsModal, closeUnitsModal, availableUnitsEl, unitListEl, backBtn;
+let imageModal, closeImageModal, previewImage, previewName;
 
-const imageModal = document.getElementById("imageModal");
-const closeImageModal = document.getElementById("closeImageModal");
-const previewImage = document.getElementById("previewImage");
-const previewName = document.getElementById("previewName");
+function cacheDom() {
+  factionGrid = document.getElementById("factionGrid");
+  factionSelectSection = document.getElementById("faction-select");
+  unitBuilderSection = document.getElementById("unit-builder");
+  selectedFactionName = document.getElementById("selectedFactionName");
+  pointLimitEl = document.getElementById("pointLimit");
+  limitPointsEl = document.getElementById("limitPoints");
+  usedPointsEl = document.getElementById("usedPoints");
+  openAddUnitBtn = document.getElementById("openAddUnit");
+  unitsModal = document.getElementById("unitsModal");
+  closeUnitsModal = document.getElementById("closeUnitsModal");
+  availableUnitsEl = document.getElementById("availableUnits");
+  unitListEl = document.getElementById("unitList");
+  backBtn = document.getElementById("backBtn");
 
-// Init
-function init() {
-    renderFactionButtons();
-    pointLimitEl.value = "60";
-    limitPointsEl.textContent = pointLimit;
-
-    pointLimitEl.addEventListener("change", onPointLimitChange);
-    openAddUnitBtn.addEventListener("click", openUnitsModal);
-    closeUnitsModal.addEventListener("click", closeUnitsModalFn);
-    backBtn.addEventListener("click", goBack);
-    closeImageModal.addEventListener("click", () => imageModal.classList.add("hidden"));
-    imageModal.classList.add("open");
-    imageModal.classList.remove("open");
+  imageModal = document.getElementById("imageModal");
+  closeImageModal = document.getElementById("closeImageModal");
+  previewImage = document.getElementById("previewImage");
+  previewName = document.getElementById("previewName");
 }
 
+function safeAddListener(el, ev, fn) {
+  if (!el) {
+    console.warn("Attempted to attach listener but element is null:", ev, fn);
+    return;
+  }
+  el.addEventListener(ev, fn);
+}
+
+// Init after DOM ready
+document.addEventListener("DOMContentLoaded", () => {
+  cacheDom();
+  init();
+});
+
+function init() {
+  // Defensive checks
+  if (!factionGrid) {
+    console.error("DOM not found: factionGrid");
+    return;
+  }
+
+  renderFactionButtons();
+
+  // default points
+  if (pointLimitEl) pointLimitEl.value = "60";
+  if (limitPointsEl) limitPointsEl.textContent = pointLimit;
+
+  safeAddListener(pointLimitEl, "change", onPointLimitChange);
+  safeAddListener(openAddUnitBtn, "click", async () => {
+    // Safety: don't open if units not loaded
+    if (!currentFaction) {
+      alert("Aucune faction sélectionnée.");
+      return;
+    }
+    if (!unitsData || unitsData.length === 0) {
+      // try to load again (maybe first load failed)
+      await loadFactionData(currentFaction.key);
+      if (!unitsData || unitsData.length === 0) {
+        alert("Aucune unité trouvée pour cette faction (fichier JSON vide ou manquant).");
+        return;
+      }
+    }
+    openUnitsModal();
+  });
+
+  safeAddListener(closeUnitsModal, "click", closeUnitsModalFn);
+  safeAddListener(backBtn, "click", goBack);
+  safeAddListener(closeImageModal, "click", () => imageModal && imageModal.classList.remove("open"));
+
+  // Ensure modals are hidden initially (extra safety)
+  if (imageModal) imageModal.classList.remove("open");
+  if (unitsModal) unitsModal.classList.remove("open");
+}
+
+// Render faction buttons
 function renderFactionButtons() {
-    FACTIONS.forEach((f) => {
-        const btn = document.createElement("button");
-        btn.className = "faction-btn";
-        btn.innerHTML = `
+  factionGrid.innerHTML = "";
+  FACTIONS.forEach((f) => {
+    const btn = document.createElement("button");
+    btn.className = "faction-btn";
+    btn.type = "button";
+    btn.innerHTML = `
       <img src="${f.logo}" alt="${f.name} logo" class="faction-logo" onerror="this.style.opacity=0.12">
       <div class="faction-name">${f.name}</div>
     `;
-        btn.addEventListener("click", () => selectFaction(f));
-        factionGrid.appendChild(btn);
-    });
+    btn.addEventListener("click", () => selectFaction(f));
+    factionGrid.appendChild(btn);
+  });
 }
 
-function selectFaction(f) {
-    currentFaction = f;
-    selectedFactionName.textContent = f.name;
+async function selectFaction(f) {
+  currentFaction = f;
+  selectedFactionName && (selectedFactionName.textContent = f.name);
 
-    factionSelectSection.classList.add("hidden");
-    unitBuilderSection.classList.remove("hidden");
+  // show loading state while fetching JSON
+  factionSelectSection && factionSelectSection.classList.add("hidden");
+  unitBuilderSection && unitBuilderSection.classList.remove("hidden");
 
-    loadFactionData(f.key);
+  // load data and wait for it
+  await loadFactionData(f.key);
+  // if no units found, inform user
+  if (!unitsData || unitsData.length === 0) {
+    alert("Aucune unité trouvée pour cette faction. Vérifiez data/" + f.key + ".json");
+  }
 }
 
 function goBack() {
-    currentFaction = null;
-    unitsData = [];
-    selectedUnits = [];
+  currentFaction = null;
+  unitsData = [];
+  selectedUnits = [];
 
-    usedPointsEl.textContent = "0";
-    unitListEl.innerHTML = "";
+  usedPointsEl && (usedPointsEl.textContent = "0");
+  unitListEl && (unitListEl.innerHTML = "");
 
-    factionSelectSection.classList.remove("hidden");
-    unitBuilderSection.classList.add("hidden");
+  factionSelectSection && factionSelectSection.classList.remove("hidden");
+  unitBuilderSection && unitBuilderSection.classList.add("hidden");
 }
 
 function onPointLimitChange(e) {
-    pointLimit = parseInt(e.target.value, 10);
-    limitPointsEl.textContent = pointLimit;
-    refreshPoints();
+  pointLimit = parseInt(e.target.value, 10) || 60;
+  if (limitPointsEl) limitPointsEl.textContent = pointLimit;
+  refreshPoints();
 }
 
 async function loadFactionData(key) {
-    try {
-        const res = await fetch(`data/${key}.json`);
-        if (!res.ok) throw new Error("Impossible de charger le JSON: " + res.status);
-        unitsData = await res.json();
-    } catch (err) {
-        unitsData = [];
-        console.error(err);
-        alert("Erreur lors du chargement des données pour la faction. Vérifiez que data/" + key + ".json existe.");
+  unitsData = [];
+  try {
+    const res = await fetch(`data/${key}.json`, { cache: "no-store" });
+    if (!res.ok) {
+      console.warn("fetch failed for", key, res.status);
+      return;
     }
+    const json = await res.json();
+    // ensure it's an array
+    if (Array.isArray(json)) unitsData = json;
+    else console.warn("JSON loaded but not an array:", json);
+  } catch (err) {
+    console.error("Error loading faction JSON:", err);
+  }
 }
 
+// open modal listing available units
 function openUnitsModal() {
-    availableUnitsEl.innerHTML = "";
+  if (!availableUnitsEl) {
+    console.error("availableUnitsEl not found");
+    return;
+  }
+  availableUnitsEl.innerHTML = "";
 
-    unitsData.forEach((u) => {
-        const li = document.createElement("li");
-        li.className = "available-item";
+  // If unitsData empty, show message
+  if (!unitsData || unitsData.length === 0) {
+    const li = document.createElement("li");
+    li.className = "available-item";
+    li.textContent = "Aucune unité disponible.";
+    availableUnitsEl.appendChild(li);
+    unitsModal && unitsModal.classList.add("open");
+    return;
+  }
 
-        li.innerHTML = `
+  unitsData.forEach((u) => {
+    const li = document.createElement("li");
+    li.className = "available-item";
+
+    // Use dataset attributes to avoid closure issues
+    li.innerHTML = `
       <div>
         <strong>${u.name}</strong>
         <div class="muted">${u.cost} pts</div>
       </div>
       <div>
-        <button class="icon-btn" data-eye>👁️</button>
-        <button class="primary" data-add>Ajouter</button>
+        <button class="icon-btn" data-eye type="button">👁️</button>
+        <button class="primary" data-add type="button">Ajouter</button>
       </div>
     `;
 
-        li.querySelector("[data-eye]").addEventListener("click", () => openImagePreview(u));
-        li.querySelector("[data-add]").addEventListener("click", () => addUnit(u));
+    // query buttons (always present)
+    const eyeBtn = li.querySelector("[data-eye]");
+    const addBtn = li.querySelector("[data-add]");
 
-        availableUnitsEl.appendChild(li);
+    eyeBtn && eyeBtn.addEventListener("click", () => openImagePreview(u));
+    addBtn && addBtn.addEventListener("click", () => {
+      addUnit(u);
+      // optionally close modal or keep open; here we keep it open
+      renderSelectedUnits();
     });
 
-    unitsModal.classList.remove("hidden");
+    availableUnitsEl.appendChild(li);
+  });
+
+  unitsModal && unitsModal.classList.add("open");
 }
 
+// close modal
 function closeUnitsModalFn() {
-    unitsModal.classList.add("hidden");
+  unitsModal && unitsModal.classList.remove("open");
 }
 
 function addUnit(u) {
-    const used = selectedUnits.reduce((s, x) => s + x.cost, 0);
-
-    if (used + u.cost > pointLimit) {
-        alert("Ajouter cette unité dépasserait la limite de points.");
-        return;
-    }
-
-    selectedUnits.push(u);
-    renderSelectedUnits();
+  if (!u || typeof u.cost !== "number") {
+    console.warn("Invalid unit", u);
+    return;
+  }
+  const used = selectedUnits.reduce((s, x) => s + (x.cost || 0), 0);
+  if (used + u.cost > pointLimit) {
+    alert("Ajouter cette unité dépasserait la limite de points.");
+    return;
+  }
+  // we push a shallow copy so repeated additions are independent
+  selectedUnits.push({ ...u });
+  renderSelectedUnits();
 }
 
 function renderSelectedUnits() {
-    unitListEl.innerHTML = "";
+  if (!unitListEl) return;
+  unitListEl.innerHTML = "";
 
-    selectedUnits.forEach((u, idx) => {
-        const li = document.createElement("li");
-        li.className = "unit-item";
+  selectedUnits.forEach((u, idx) => {
+    const li = document.createElement("li");
+    li.className = "unit-item";
 
-        li.innerHTML = `
+    li.innerHTML = `
       <div class="unit-meta">
         <div>
           <strong>${u.name}</strong>
@@ -161,36 +251,36 @@ function renderSelectedUnits() {
         </div>
       </div>
       <div>
-        <button class="icon-btn" data-eye>👁️</button>
-        <button class="icon-btn" data-del>🗑️</button>
+        <button class="icon-btn" data-eye type="button">👁️</button>
+        <button class="icon-btn" data-del type="button">🗑️</button>
       </div>
     `;
 
-        li.querySelector("[data-eye]").addEventListener("click", () => openImagePreview(u));
-        li.querySelector("[data-del]").addEventListener("click", () => {
-            selectedUnits.splice(idx, 1);
-            renderSelectedUnits();
-        });
+    const eye = li.querySelector("[data-eye]");
+    const del = li.querySelector("[data-del]");
 
-        unitListEl.appendChild(li);
+    eye && eye.addEventListener("click", () => openImagePreview(u));
+    del && del.addEventListener("click", () => {
+      selectedUnits.splice(idx, 1);
+      renderSelectedUnits();
     });
 
-    refreshPoints();
+    unitListEl.appendChild(li);
+  });
+
+  refreshPoints();
 }
 
 function refreshPoints() {
-    const used = selectedUnits.reduce((s, x) => s + x.cost, 0);
-    usedPointsEl.textContent = used;
-    limitPointsEl.textContent = pointLimit;
+  const used = selectedUnits.reduce((s, x) => s + (x.cost || 0), 0);
+  if (usedPointsEl) usedPointsEl.textContent = used;
+  if (limitPointsEl) limitPointsEl.textContent = pointLimit;
 }
 
 function openImagePreview(u) {
-    const imgPath = `assets/${currentFaction.key}/${u.image}`;
-    previewImage.src = imgPath;
-    previewName.textContent = `${u.name} — ${u.cost} pts`;
-
-    imageModal.classList.remove("hidden");
+  if (!imageModal || !previewImage || !previewName) return;
+  const imgPath = `assets/${currentFaction.key}/${u.image}`;
+  previewImage.src = imgPath;
+  previewName.textContent = `${u.name} — ${u.cost} pts`;
+  imageModal.classList.add("open");
 }
-
-// Start the application
-init();
