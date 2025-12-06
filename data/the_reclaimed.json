@@ -1,0 +1,122 @@
+[
+  {
+    "id": "unique-id-1",
+    "name": "Centaur Flamer",
+    "cost": 12,
+    "image": "CentaurFlamer.png"
+  },
+  {
+    "id": "unique-id-2",
+    "name": "Centaur Gunslinger",
+    "cost": 12,
+    "image": "CentaurGunslinger.png"
+  },
+    {
+    "id": "unique-id-3",
+    "name": "Cyclop Flamer",
+    "cost": 7,
+    "image": "CyclopFlamer.png"
+  },
+  {
+    "id": "unique-id-4",
+    "name": "Cyclop Guardian",
+    "cost": 6,
+    "image": "CyclopGuardian.png"
+  },
+    {
+    "id": "unique-id-5",
+    "name": "Cyclop Gunslinger",
+    "cost": 7,
+    "image": "CyclopGunslinger.png"
+  },
+  {
+    "id": "unique-id-6",
+    "name": "Cyclop Hitter",
+    "cost": 7,
+    "image": "CyclopHitter.png"
+  },
+    {
+    "id": "unique-id-7",
+    "name": "Cyclop Welder",
+    "cost": 7,
+    "image": "CyclopWelder.jpg"
+  },
+  {
+    "id": "unique-id-8",
+    "name": "Cyclop Worker",
+    "cost": 4,
+    "image": "CyclopWorker.jpg"
+  },
+    {
+    "id": "unique-id-9",
+    "name": "Troll Sentinel",
+    "cost": 4,
+    "image": "TrollSentinel.jpg"
+  },
+    {
+    "id": "unique-id-10",
+    "name": "Troll Sniper",
+    "cost": 6,
+    "image": "TrollSniper.jpg"
+  },
+  {
+    "id": "unique-id-11",
+    "name": "Troll Worker",
+    "cost": 3,
+    "image": "TrollWorker.jpg"
+  },
+    {
+    "id": "unique-id-12",
+    "name": "Ifrit Warden",
+    "cost": 3,
+    "image": "Ifrit.png"
+  },
+  {
+    "id": "unique-id-13",
+    "name": "Imp Warden",
+    "cost": 2,
+    "image": "Imp.png"
+  },
+    {
+    "id": "unique-id-14",
+    "name": "Human Crew",
+    "cost": 1,
+    "image": "HumanCrew.png"
+  },
+  {
+    "id": "unique-id-15",
+    "name": "Concrete Patch",
+    "cost": 1,
+    "image": "ConcretePatch.jpg"
+  },
+    {
+    "id": "unique-id-16",
+    "name": "Defective Riveting",
+    "cost": 2,
+    "image": "DefectiveRiveting.png"
+  },
+  {
+    "id": "unique-id-17",
+    "name": "Falling Debris",
+    "cost": 4,
+    "image": "FallingDebris.png"
+  },
+    {
+    "id": "unique-id-18",
+    "name": "High Octane Refill",
+    "cost": 3,
+    "image": "HighOctaneRefill.png"
+  },
+  {
+    "id": "unique-id-19",
+    "name": "Logistic Shift",
+    "cost": 1,
+    "image": "LogisticsShift.png"
+  },
+  {
+    "id": "unique-id-20",
+    "name": "One-Eyed Beam",
+    "cost": 2,
+    "image": "One-eyedBeam.png"
+  }
+]
